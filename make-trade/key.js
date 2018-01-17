@@ -1,0 +1,23 @@
+var key = {
+	"okex":[
+		{
+			"public":"9b25e41a-f6c8-44b6-9ea9-ba4ea4692938",
+			"private":"AD867F523996E99342F683C45C9E5072"
+		}
+	],
+	"huobi":[
+		{
+			"public":"96ea09d0-073cedad-d9d2f722-a572a",
+			"private":"fde3a13c-99fa22f6-77aaa5ad-60623"
+		},
+		{
+			"public":"0f7bf42f-00ec26cb-914bb968-f01b8",
+			"private":"a120a9ce-7a37d59d-0d87e3a5-8333e"
+		},
+		{
+			"del":"true",
+			"public":"512e5d0f-1090531e-36d553dc-595e9",
+			"private":"86d32dfc-3e796f30-1973a3f7-78eab"
+		}
+	]
+}

@@ -1,0 +1,57 @@
+html body {
+  margin: 0;
+  background: linear-gradient(135deg, #FEDBC6 5%, #D067F6 21%, #FFAD7D 50%, #66FF7F 76%, #BFFFFB 100%);
+  /* W3C */ }
+  html body #status {
+    overflow: auto;
+    display: none; }
+  html body #output {
+    display: none; }
+  html body #symbols_box {
+    margin: 0;
+    padding: 0; }
+    html body #symbols_box .symbol-list-item {
+      padding: 5px;
+      background: rgba(0, 32, 255, 0.29);
+      list-style: none;
+      border-left-top-radius: 10px;
+      margin-bottom: 15px;
+      box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.36);
+      transition: all 0.1s; }
+      html body #symbols_box .symbol-list-item:last-child {
+        margin-bottom: 20px; }
+      html body #symbols_box .symbol-list-item .symbol-title {
+        margin: 0; }
+      html body #symbols_box .symbol-list-item.current {
+        background-color: #60e3e6; }
+        html body #symbols_box .symbol-list-item.current .symbol-price, html body #symbols_box .symbol-list-item.current .cny-price {
+          color: orange;
+          font-size: 120%; }
+  html body .flex {
+    display: flex;
+    line-height: 20px;
+    background-color: #FFF;
+    border-radius: 3px;
+    padding: 0px 10px;
+    flex-flow: row wrap; }
+    html body .flex .flex-item {
+      flex: 0 0 23%;
+      padding: 5px;
+      font-size: 16px;
+      color: #000;
+      transition: all 0.5s; }
+      html body .flex .flex-item .symbol-price {
+        color: #868686; }
+      html body .flex .flex-item .cny-price {
+        color: green; }
+      html body .flex .flex-item.taker, html body .flex .flex-item.maker {
+        flex: 1; }
+  html body .price-space {
+    margin-bottom: 10px;
+    padding: 0 10px 10px;
+    font-size: 20px;
+    color: orange;
+    background-color: #FFF; }
+  html body .maker, html body .taker {
+    max-width: 100px;
+    overflow: hidden; }

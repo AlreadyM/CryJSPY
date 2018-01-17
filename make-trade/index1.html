@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<meta name="format-detection" content="telephone=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <!-- <link rel="stylesheet" type="text/css" href="/statichtml/moviehelper/app/Public/base.css" /> -->
+    <!-- <link rel="stylesheet" type="text/css" href="../css/" /> -->
+	<title>huobi websocket</title>
+	<style type="text/css">
+		.data-area li{
+			display: none;
+		}
+	</style>
+</head>
+<body>
+	<header></header>
+	<div class="container">
+		<div class="section">
+			正文
+		</div>
+		<div class="section">
+			<button id="get"> 获取</button>
+		</div>
+		<div class="section">
+			<div class="data-area">
+				<h2>块1</h2>
+				<ul>
+					<li>1</li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+				</ul>
+			</div>
+			<div class="data-area">
+				<h2>块2</h2>
+				<ul>
+					<li>1</li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+				</ul>
+			</div>
+			<div class="data-area">
+				<ul>
+					<li>1</li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+					<li></li>
+				</ul>
+			</div>
+		</div>
+	</div>
+	<footer></footer>
+	<!-- jQuery 2.1.4 -->
+	<script src="https://staticcdn.yshjie.com/cdn/librarypath/jquery/jquery-2.1.4.min.js"></script>
+	<!-- <script src="/moviehelper/app/Public/jQuery/jquery-2.1.4.min.js"></script> -->
+	<!-- statistics  -->
+	<script>
+		$(function () {
+			$('#get').on('click',function () {
+				// get();
+				getContrast('./trade_contrast')
+			})
+			function getBaseCurreny() {
+				var baseUrl = 'https://api.huobi.pro'
+
+				$.get('')
+				return {
+					// "USDT":
+					// "BTC":
+					// "ETH":
+				}
+			}
+			function get() {
+				var url = 'okex.php'
+				$.get(url,function (data) {
+					var type = typeof(data),
+						json = $.parseJSON(data),
+						nowType = typeof(json)
+						console.log(type,nowType)
+					console.log(json);
+				})
+			}
+			function getContrast(file) {
+				$.get(file,function (data) {
+					var json = $.parseJSON(data)
+						,tradeArray = []
+						trades = json.HB;
+					for(var i in trades){
+						var trade = trades[i].contrast
+							,name = trades[i].name
+							,contrast = [];
+							contrast.push({"name":name});
+						for(var j in trade){
+							contrast.push(trade[j]);
+						}
+						tradeArray.push(contrast);
+					}
+					contrastpear (tradeArray);
+					// console.log(tradeArray);
+				})
+
+			}
+			function contrastpear (array){
+				for(var i=0;i<array.length; i++){
+					for(var j=1;j<array[i].length; j++){
+						// console.log('当前是第'+(i+1)+'个组里的-'+array[i][j])
+						var currentcontrast = array[i][j]
+							,nextGroup = i+1 < array.length?array[i+1]:null
+							// console.log(nextGroup)
+							if(nextGroup == null){
+
+							}else{
+								var inOut = nextGroup.indexOf(currentcontrast,1)
+								if(inOut > 0){
+								// console.log(currentcontrast)
+								// console.log(nextGroup)
+								// console.log(inOut)
+								// console.log(currentcontrast + 'is in nextGroup on' +inOut +'like'+nextGroup[inOut])
+									// console.log(currentcontrast + 'in Group'+i+1)
+								// var tradepear = currentcontrast+'/'+array[i][0].name +'?'+currentcontrast +'/'+array[i+1][0].name
+								tradeA = currentcontrast +''+array[i][0].name
+								tradeB = currentcontrast +''+array[i+1][0].name
+								// console.log(tradeA,tradeB)
+
+								// getData from server
+								// console.log(i,j)
+								getMarket(tradeA.toLowerCase(),i,j,array[i][0].name)
+								getMarket(tradeB.toLowerCase(),i,j,array[i+1][0].name)
+
+								}
+							}
+					}
+					// console.log('------')
+				}
+			}
+
+			function getMarket(symbol,i,j,baseMoney) {
+				var baseUrl = 'https://api.huobi.pro'
+					,method = '/market/depth?symbol='+symbol+'&type=step0'
+					,url = baseUrl+method
+					// console.log('0000--0000')
+					
+				setInterval(function (argument) {
+					$.get(url,function (data) {
+						// console.log(1)
+						var res = $.parseJSON(data)
+
+						renderData(res,i,j,baseMoney)
+					})
+				},5000)
+			}
+			function renderData(data,i,j,baseMoney) {
+				var box = $('.data-area')
+					,exchange = 1;
+				if(baseMoney == 'USDT'){
+					exchange = 7;
+				}else if(baseMoney == 'BTC'){
+					exchange = 103355;
+				}else if(baseMoney == 'ETH'){
+					exchange = 2994.93;
+				}
+				var price = data.tick.asks[0][0] * exchange
+				box.eq(i).find('li').eq(j).show().append('<span>'+price+'</span><br/>')
+			}
+		
+		})
+	</script>
+</body>
+</html>

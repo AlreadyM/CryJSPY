@@ -1,0 +1,80 @@
+html{
+	// height: 100%;
+	body{
+		margin: 0;
+		background: linear-gradient(135deg, #FEDBC6 5%, #D067F6 21%, #FFAD7D 50%, #66FF7F 76%, #BFFFFB 100%);/* W3C */		#status{
+		overflow:auto;
+		display: none;
+		// height: 100%;
+		}
+		#output{
+			display: none;
+		}
+		#symbols_box{
+			margin: 0;padding: 0;
+			.symbol-list-item{
+				// height: 100px;
+				// overflow: hidden;
+				padding: 5px;
+				background: rgba(0, 32, 255, 0.29);
+				list-style:none;
+				border-left-top-radius:10px;
+				margin-bottom: 15px;
+				box-shadow:2px 2px 5px rgba(0, 0, 0, 0.36);
+				transition:all 0.1s;
+				&:last-child{
+					margin-bottom: 20px;
+				}
+				.symbol-title{
+					margin: 0;
+				}
+				&.current{
+					background-color: lighten(rgba(96, 227, 230,1), 0.01);
+					.symbol-price,.cny-price{
+						color:orange;
+						font-size: 120%;
+					}
+				}
+			}
+		}
+
+		.flex{
+			display: flex;
+			line-height: 20px;
+			background-color: #FFF;
+			border-radius:3px;
+			padding: 0px 10px;
+			flex-flow: row wrap;
+			// box-shadow:2px -4px 13px 4px #bb6f6f;
+			.flex-item{
+				flex: 0 0 23%;
+				padding: 5px;
+				font-size: 16px;
+				color:#000;
+				// height: 100px;
+				// overflow: auto;
+				transition: all 0.5s;
+				.symbol-price{
+					color:#868686;
+				}
+				.cny-price{
+					color:green;
+				}
+				&.taker,&.maker{
+					flex:1;
+				}
+			}
+		}
+		.price-space{
+			margin-bottom: 10px;
+			padding: 0 10px 10px;
+			font-size: 20px;
+			color: orange;
+			background-color: #FFF;
+		}
+		.maker,.taker{
+			max-width:100px;
+			overflow:hidden;
+		}
+	}
+}

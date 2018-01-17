@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<meta name="format-detection" content="telephone=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+	<title>zb.com</title>
+</head>
+<body>
+	<header></header>
+	<div class="container">
+		<div class="section">
+			websocket zb
+		</div>
+		<div class="section">
+
+		</div>
+	</div>
+	<footer></footer>
+	<!-- jQuery 2.1.4 -->
+	<!-- <script src="https://staticcdn.yshjie.com/cdn/librarypath/jquery/jquery-2.1.4.min.js"></script> -->
+	<script src="/moviehelper/app/Public/jQuery/jquery-2.1.4.min.js"></script>
+	<!-- statistics  -->
+	<script>
+		$(function () {
+			var ZB = {};
+			var url = 'wss://api.zb.com:9999/websocket'
+
+			ZB.init = function (wsurl,apiKey,secretKey) {
+				this.wsurl = wsurl=='' ? 'wss://api.huobi.pro/ws' : wsurl;
+				this.apKey = apiKey;
+				this.secretKey = secretKey;
+				this.lastHeartBeat = new Date().getTime();
+				this.overtime = 8000;
+				ZB.websocket = new WebSocket(wsurl);
+
+				ZB.websocket.onopen = function(evt) {
+					onOpen(evt)
+				};
+				ZB.websocket.onclose = function(evt) {
+					onClose(evt)
+				};
+				ZB.websocket.onmessage = function(evt) {
+					onMessage(evt)
+				};
+				ZB.websocket.onerror = function(evt) {
+					onError(evt)
+				};
+			}
+			function onOpen(e) {
+				var msg = {
+						  "sub": "market.btcusdt.kline.1min",
+						  "id": "id1"
+						}
+				doSend(msg)
+				Ping()
+				getMark()
+				console.log(e)
+			}
+			function onClose(e) {
+
+				console.log(e)
+			}
+			function onMessage(m) {
+				var chunk = m.data;
+				console.log(m)
+				// var data = ungzip(chunk)
+				// console.log(data)
+				// console.log(new Date().getTime() + ": " + data)
+				// var array = JSON.parse(data);
+				// console.log(array)
+			}	
+			function onError(e) {
+
+				console.log(e)
+			}
+			function doSend(msg) {
+				ZB.websocket.send(msg);
+				console.log('msg sended')
+			}
+			function Ping() {
+				var ts	 = new Date().getTime(),
+					ping = {'ping':ts}
+				console.log(ping);
+				doSend(ping);
+			}
+			function ungzip(string) {
+				var str = btoa(string)
+				var charData    = str.split('').map(function(x){return x.charCodeAt(0);});  
+
+				var binData = new Uint8Array(charData)
+				// res = binData;
+				var data = pako.inflate(binData);
+				res	= String.fromCharCode.apply(null, new Uint16Array(data));
+
+				console.log(res)
+				return res;
+			}
+			function getMark() {
+				var msg = {
+							'event':'addChannel',
+							'channel':'ltcbtc_ticker'
+						};
+				doSend(msg);
+			}
+			ZB.init(url,'512e5d0f-1090531e-36d553dc-595e9','86d32dfc-3e796f30-1973a3f7-78eab')
+		})
+	</script>
+</body>
+</html>

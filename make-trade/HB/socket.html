@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<meta name="format-detection" content="telephone=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+	<title>Socket-HB</title>
+</head>
+<body>
+	<header>
+		USE Web Socket
+	</header>
+	<div class="container">
+		<div class="section">
+			正文
+		</div>
+		<div class="section">
+
+		</div>
+	</div>
+	<footer></footer>
+	<!-- jQuery 2.1.4 -->
+	<!-- <script src="https://staticcdn.yshjie.com/cdn/librarypath/jquery/jquery-2.1.4.min.js"></script> -->
+	<script src="/moviehelper/app/Public/jQuery/jquery-2.1.4.min.js"></script>
+	<!-- <script src="./pako/dist/pako.js"></script>
+	<script src="./pako/dist/pako_inflate.js"></script>
+ -->
+
+	<script src="https://cdn.bootcss.com/pako/1.0.6/pako.js"></script>
+	<script src="https://cdn.bootcss.com/pako/1.0.6/pako_inflate.js"></script>
+	<!-- statistics  -->
+	<script>
+		$(function () {
+			(function WebSocketSupport() {
+				if(window.WebSocket){
+			       console.log('This browser supports WebSocket');
+			       // return true;
+			   }else{
+			       console.log('This browser does not supports WebSocket');
+			       // return false;
+			   }
+			})()
+			var unzip = new pako.Inflate()
+			console.log(unzip)
+			var HB = {};
+			HB.init = function (wsurl,apiKey,secretKey) {
+				this.wsurl = wsurl=='' ? 'wss://api.huobi.pro/ws' : wsurl;
+				this.apKey = apiKey;
+				this.secretKey = secretKey;
+				this.lastHeartBeat = new Date().getTime();
+				this.overtime = 8000;
+				HB.websocket = new WebSocket(wsurl);
+
+				HB.websocket.onopen = function(evt) {
+					onOpen(evt)
+				};
+				HB.websocket.onclose = function(evt) {
+					onClose(evt)
+				};
+				HB.websocket.onmessage = function(evt) {
+					onMessage(evt)
+				};
+				HB.websocket.onerror = function(evt) {
+					onError(evt)
+				};
+			}
+			function onOpen(e) {
+				var msg = {
+						  "sub": "market.ethbtc.kline.1min",
+						  "id": "ethbtc.kline"
+						}
+				doSend(msg)
+				Ping()
+				console.log(e)
+			}
+			function onClose(e) {
+
+				console.log(e)
+			}
+			function onMessage(m) {
+				Ping()
+				// var ping = 1231423523
+				// pong(ping)
+				// var chunk = m.data;
+				// console.log(m)
+				// var data = ungzip(chunk)
+				// console.log(data)
+				// // console.log(new Date().getTime() + ": " + data)
+				// // var array = JSON.parse(data);
+				// // console.log(array)
+				// var data = decodeDataFrame(m.data);
+				var data = parseBlob(m.data);
+				console.log(data)
+			}	
+			function onError(e) {
+
+				console.log(e)
+			}
+			function doSend(msg) {
+				HB.websocket.send(msg);
+				console.log('msg sended')
+			}
+			function Ping() {
+				var ts	 = new Date().getTime(),
+					ping = {'ping':ts}
+				console.log(ping);
+				doSend(ping);
+			}
+			function pong(ping) {
+				return {'pong':ping}
+			}
+			function ungzip(blod) {
+				var blod = blod;
+				// var pako = require('pako')
+				var chunk1 = new Uint8Array([1,2,3,4,5,6,7,8,9])
+				  , chunk2 = new Uint8Array([10,11,12,13,14,15,16,17,18,19]);
+
+				var inflate = new pako.Inflate();
+
+				// inflate.push(chunk1, false);
+				inflate.push(chunk2, true);  // true -> last chunk
+
+				if (inflate.err) { throw new Error(inflate.err); }
+
+				console.log(inflate.result);
+				// return strData;
+			}
+			function decodeDataFrame(e){
+			  var i=0,j,s,frame={
+			    //解析前两个字节的基本数据
+			    FIN:e[i]>>7,Opcode:e[i++]&15,Mask:e[i]>>7,
+			    PayloadLength:e[i++]&0x7F
+			  };
+			  //处理特殊长度126和127
+			  if(frame.PayloadLength==126)
+			    frame.PayloadLength=(e[i++]<<8)+e[i++];
+			  if(frame.PayloadLength==127)
+			    i+=4, //长度一般用四字节的整型，前四个字节通常为长整形留空的
+			    frame.PayloadLength=(e[i++]<<24)+(e[i++]<<16)+(e[i++]<<8)+e[i++];
+			  //判断是否使用掩码
+			  if(frame.Mask){
+			    //获取掩码实体
+			    frame.MaskingKey=[e[i++],e[i++],e[i++],e[i++]];
+			    //对数据和掩码做异或运算
+			    for(j=0,s=[];j<frame.PayloadLength;j++)
+			      s.push(e[i+j]^frame.MaskingKey[j%4]);
+			  }else s=e.slice(i,i+frame.PayloadLength); //否则直接使用数据
+			  //数组转换成缓冲区来使用
+			  // s=new Buffer(s);
+			  // //如果有必要则把缓冲区转换成字符串来使用
+			  // if(frame.Opcode==1)s=s.toString();
+			  //设置上数据部分
+			  frame.PayloadData=s;
+			  //返回数据帧
+			  return frame;
+			};
+			var reader = { 
+			  readAs: function(type,blob,cb){
+				var r = new FileReader();
+				r.onloadend = function(){
+			      if(typeof(cb) === 'function') {
+			        cb.call(r,r.result);
+			      }
+			    }
+			    try{
+			      r['readAs'+type](blob);
+			    }catch(e){}
+			  }
+			}
+
+			function parseBlob(blob){
+			  var shortVar, intVar, stringVar;
+			  reader.readAs('ArrayBuffer',blob.slice(0,2),function(arr){
+			    shortVar = (new Int16Array(arr))[0];
+			    console.log(shortVar);
+			  });
+
+			  reader.readAs('ArrayBuffer',blob.slice(2,6),function(arr){
+			    intVar = (new Int32Array(arr))[0];
+			    console.log(intVar);
+			  });
+
+			  reader.readAs('Text',blob.slice(6,blob.size,'text/plain;charset=UTF-8'),function(result){
+			    stringVar = result;
+			    console.log(stringVar);
+			  });
+			}
+
+			var buffer = new ArrayBuffer(16);//建立6个字节的缓冲，前两个字节是short，后四个是int
+			var bufferView = new Int16Array(buffer); //建立16位的视图,那么视图的长度应该是3
+			bufferView[0] = 32767;
+			bufferView[1] = 89878;
+			bufferView[2] = 1;  
+			//现在buffer中的内容由低位到高位应该是 
+			//11111111 11111110 00000000 00000000 100000000 00000000
+			var blob = new Blob([bufferView,"words words 文本文本文本文本"]);
+			//构造这个blob类型
+			//测试一下parseBlob函数是否正确
+			// parseBlob(blob);
+			//32767
+			//65536
+			//words words 文本文本文本文本
+			//第一个short是32767
+			//第二个int，前16位为0，第17位为1，所以结果是65536
+			//第三个字符串，和我们构造blob的时候一样
+			//
+			HB.init('wss://api.huobi.pro/ws','512e5d0f-1090531e-36d553dc-595e9','86d32dfc-3e796f30-1973a3f7-78eab')
+
+		})
+	</script>
+</body>
+</html>

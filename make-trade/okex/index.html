@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<head>
+	<meta charset="utf-8" />
+	<meta charset="utf-8" />
+	<meta name="format-detection" content="telephone=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+	<title>WebSocket Test</title>
+	<link rel="stylesheet" type="text/css" href="./css/index.css">
+</head>
+<body>
+	<h2 id="th2">WebSocket Test</h2>
+	<div id="status"></div>
+	<div id="output"></div>
+	<ul id="symbols_box"></ul>
+<script type="text/javascript" src="MD5.js"></script>
+<script src="/moviehelper/app/Public/jQuery/jquery-2.1.4.min.js"></script>
+<!-- <script src="https://cdn.bootcss.com/crypto-js/3.1.9/core.min.js"></script> -->
+<!-- <script src="https://cdn.bootcss.com/crypto-js/3.1.9/md5.min.js"></script> -->
+<script src="/trade/make-trade/key.js"></script>
+<script src="./okex_symbols.js"></script>
+<script src="./Array.reduceMax_Min.js"></script>
+<script type="text/javascript">
+	var okCoinWebSocket = {};
+	var usdt_price = 7
+		,tradeExpress = 0.004 // 双向千分之四
+	okCoinWebSocket.init = function(uri, apiKey, secretKey) {
+		this.wsUri = uri;
+		this.api_key = apiKey;
+		this.secret_key = secretKey;
+		this.lastHeartBeat = new Date().getTime();
+		this.overtime = 8000;
+		
+		okCoinWebSocket.websocket = new WebSocket(okCoinWebSocket.wsUri);
+		
+		okCoinWebSocket.websocket.onopen = function(evt) {
+			onOpen(evt)
+		};
+		okCoinWebSocket.websocket.onclose = function(evt) {
+			onClose(evt)
+		};
+		okCoinWebSocket.websocket.onmessage = function(evt) {
+			onMessage(evt)
+		};
+		okCoinWebSocket.websocket.onerror = function(evt) {
+			onError(evt)
+		};
+		
+		setInterval(checkConnect,5000);
+	}
+
+	function checkConnect() {
+		// okCoinWebSocket.websocket.send("{'event':'ping'}");
+		if ((new Date().getTime() - okCoinWebSocket.lastHeartBeat) > okCoinWebSocket.overtime) {
+			console.log("socket 连接断开，正在尝试重新建立连接"+new Date());
+			okCoinWebSocket.init("wss://real.okex.com:10440/websocket/okexapi", key.okex[0].public, key.okex[0].private);
+		}else{
+			ping = "{'event':'ping'}";
+			doSend(ping)
+			console.log("socket 连接正常"+new Date());
+		}
+	}
+	
+	var registerSymbols = {
+		regInit:function (array) {
+			for(var i=0;i<array.length-1;i++){
+				var baseSymbol = array[i].toLowerCase()
+				var usdtMSG = "{'event':'addChannel','channel':'ok_sub_spot_"+baseSymbol+"_usdt_depth_5'}"
+					,btcMSG = "{'event':'addChannel','channel':'ok_sub_spot_"+baseSymbol+"_btc_depth_5'}"
+					,ethMSG = "{'event':'addChannel','channel':'ok_sub_spot_"+baseSymbol+"_eth_depth_5'}"
+					,bchMSG = "{'event':'addChannel','channel':'ok_sub_spot_"+baseSymbol+"_bch_depth_5'}"
+				doSend(usdtMSG);
+				doSend(btcMSG);
+				doSend(ethMSG);
+				doSend(bchMSG);
+			}
+		},
+		regBase:function (arr) {
+			this.regInit(arr)
+		},
+		regNormal:function (arr) {
+			this.regInit(arr)
+		}
+	}
+
+	function onOpen(evt) {
+		print("CONNECTED");
+		// 账户信息
+		spotUserinfos()
+		//  base reg
+		new registerSymbols.regInit(symbols)
+		//  normal reg
+
+	}
+	
+	function tradeTest(){
+		//现货交易
+		//spotTrade();
+		//spotCancelOrder(100);
+		//spotUserInfo();
+		//spotOrderInfo();
+		//spotTrades();
+		//spotUserinfos();
+		
+		//合约交易
+		//futureTrade();
+		//futureCancelOrder(100);
+		//futureUserInfo();
+		//futureOrderInfo(100);
+		//futureTrades();
+		//futureUserinfos();
+		//futurePositions();
+	}
+
+	function onClose(evt) {
+		print("DISCONNECTED");
+	}
+	channels = renderChannel(symbols);
+	box = $('#symbols_box');
+	// console.log(symbols);
+	// console.log(channels);
+
+	function onMessage(e) {
+		var array = JSON.parse(e.data);
+		if(array.result == false){console.log('err');console.log(array);return false;}
+		if(array.result == false){console.log('err');console.log(array);return false;}
+		// 心跳检测 ping -> pong -> ping
+		if (array.event == 'pong') {
+			// console.log('ping-pong')
+			okCoinWebSocket.lastHeartBeat = new Date().getTime();
+		} else {
+			var resData = array;
+			createTable(array);
+			// console.log(resData)
+			var channel = array[0].channel;
+			if(channel == 'addChannel') return false; // 如新增订阅  do nothing
+			if(channel.indexOf('depth') < 0 ) return false; // 如深度 则继续
+			// console.log(channels)
+			var crypto = new checkSymbols(channel,symbols).getCrypto() // 币别
+			// console.log(crypto)
+			var baseSymbol = new checkSymbols(channel,symbols).getSymbol() // 对类型
+			// console.log(baseSymbol)
+			insertSymbols(crypto,baseSymbol,resData)
+
+			// destory object
+				channel = '';
+				resData = '';
+		}
+
+		// 下单检测
+		for (var i = 0; i < array.length; i++) {
+			for (var j = 0;j < array[i].length; j++) {
+				var isTrade = false;
+				var isCancelOrder = false;
+				if (array[i][j] == 'ok_spotusd_trade' || array[i][j] == 'ok_spotcny_trade') {
+					isTrade = true;
+				} else if (array[i][j] == 'ok_spotusd_cancel_order'
+						|| array[i][j] == 'ok_spotcny_cancel_order') {
+					isCancelOrder = true;
+				}
+				var order_id = array[i][j].order_id;
+				if (typeof (order_id) != 'undefined') {
+					if (isTrade) {
+						//下单成功 业务代码
+						console.log("orderId is  " + order_id);
+					} else if (isCancelOrder) {
+						//取消订单成功 业务代码
+						console.log("order  " + order_id + " is now cancled");
+					}
+				}
+			}
+			// destory object
+			isTrade = ''
+			isCancelOrder = ''
+			order_id = ''
+		}
+
+		// 下单检测 END
+		// destory object
+		array = '';
+	}
+	function checkSymbols(ch,sym) {
+        // console.log(ch,sym)
+	    this.getSymbol = function () {
+	        var BTCSYMBOL   = 'btc'
+	            ,USDTSYMBOL = 'usdt'
+	            ,ETHSYMBOL  = 'eth'
+	            ,BCHSYMBOL  = 'bch'
+	            ,BASESYMBOL = ''
+	        if(ch.indexOf(BTCSYMBOL,15) > 0){
+	            BASESYMBOL = BTCSYMBOL
+	        }else if(ch.indexOf(USDTSYMBOL,15) > 0){
+	            BASESYMBOL = USDTSYMBOL
+	        }else if(ch.indexOf(ETHSYMBOL,15) > 0){
+	            BASESYMBOL = ETHSYMBOL
+	        }else if(ch.indexOf(BCHSYMBOL,15) > 0){
+	            BASESYMBOL = BCHSYMBOL
+	        }else{
+	            console.log('there is no the same symbols')
+	        }
+	        // console.log('---->'+BASESYMBOL)
+	        return BASESYMBOL;
+	    }
+	    this.getCrypto = function () {
+	        for(var i=0;i<sym.length -1;i++){
+	            if(ch.indexOf(sym[i].toLowerCase()) ==12 ){
+	            	ind = ch.indexOf(sym[i].toLowerCase())
+	                return sym[i]
+	            }
+	        }
+
+	    }
+	}
+	function insertSymbols (crypto,baseSymbol,data) {
+		var cryptoBox = box.find('#'+crypto);
+		//添加币别
+		if(cryptoBox.length == 0){ // 不存在该币别
+			cryptoBox = $('<li id="'+crypto+'" class="symbol-list-item">\
+							<h2>'+crypto+'</h2>\
+							<div class="flex '+crypto+'"></div>\
+						</li>');
+			box.append(cryptoBox);
+		}else{ // 存在该币别 更新数据即可
+			cryptoBox.find()
+		}
+		// 添加交易对 原理同币别
+		var symbolBox = cryptoBox.find('.flex-item.'+baseSymbol)
+		    ,priceSym = 0
+		    ,btcPrice = $('#btc #usdt_text_asks').attr('data-symbol-price')
+		    ,ethPrice = $('#eth #usdt_text_asks').attr('data-symbol-price')
+		    ,bchPrice = $('#bch #usdt_text_asks').attr('data-symbol-price')
+		if(baseSymbol == 'usdt'){
+		    priceSym = 1
+		}else if(baseSymbol == 'btc'){
+		    priceSym = btcPrice
+
+		}else if(baseSymbol == 'eth'){
+		    priceSym = ethPrice
+		}else if(baseSymbol == 'bch'){
+		    priceSym = bchPrice
+		}
+		// dep separate
+		var dep = data[0].data
+			sale = dep.asks
+		    ,buy = dep.bids
+		    console.log()
+		this.renderDepth = function (dep) {
+		    var depth = ''
+		    for(var i=0;i<dep.length;i++){
+		        var curPrice = dep[i][0]
+		            ,num = dep[i][1]
+		        depth += (curPrice*priceSym)+'<br/>';
+		    }
+		    curPrice = '';
+		    num = '';
+		    return depth;
+		}
+		var  symbolTextAsks = this.renderDepth(sale)
+            ,symbolTextBids = this.renderDepth(buy);
+		if(symbolBox.length == 0){
+		    symbolBox = '<div id="" class="flex-item '+baseSymbol+'">\
+		                    <h2>'+baseSymbol+'</h2>\
+		                    <div id="'+baseSymbol+'_text" class="flex">\
+		                        <div id="'+baseSymbol+'_text_asks" class="flex-item maker" data-symbol-price="'+sale[4][0]*priceSym+'"><h2>Maker</h2>'+symbolTextAsks+'</div>\
+		                        <div id="'+baseSymbol+'_text_bids" class="flex-item taker" data-symbol-price="'+buy[0][0]*priceSym+'"><h2>Taker</h2>'+symbolTextBids+'</div>\
+		                    </div>\
+		                </div>'
+		    cryptoBox.find('.flex.'+crypto).append(symbolBox)
+		}else{
+		    symbolBox.find('#'+baseSymbol+'_text').find('#'+baseSymbol+'_text_asks').attr("data-symbol-price",sale[4][0]*priceSym).html('<h2>Maker</h2>'+symbolTextAsks)
+		    symbolBox.find('#'+baseSymbol+'_text').find('#'+baseSymbol+'_text_bids').attr("data-symbol-price",buy[0][0]*priceSym).html('<h2>Taker</h2>'+symbolTextBids)
+		}
+		// 比价
+		this.compareSymbol = function (cryptoBox,crypto) {
+			if(crypto == 'btc'){
+				// console.log('isBTC --->');
+				return false;
+			}
+			var makerDom = cryptoBox.find('.maker')
+				,takerDom = cryptoBox.find('.taker')
+				,makerArray = []
+				,takerArray = []
+				,takerPrice = 0
+				,makerPrice = 0
+				,priceSpace = 0
+				,priceCompare = cryptoBox.find('.priceCompare')
+				;
+				makerDom.each(function (i,el) {
+					cur = $(el).attr('data-symbol-price');
+					makerArray.push(cur);
+				})
+				takerDom.each(function (i,el) {
+					cur = $(el).attr('data-symbol-price');
+					takerArray.push(cur);
+				})
+				makerPrice = makerArray.ruduceMin();
+				takerPrice = takerArray.ruduceMax();
+				// console.log(makerPrice);
+				// console.log(takerPrice);
+				priceSpace = takerPrice - makerPrice;
+				pricepercent = priceSpace / makerPrice * 100
+				if(priceCompare.length == 0){
+					priceCompare = '<div class="priceCompare">'+pricepercent.toFixed(5)+'</div>'
+					cryptoBox.attr('symbolPricepercent',pricepercent).append(priceCompare)
+				}else{
+					priceCompare.html(pricepercent)
+				}
+
+				if(crypto == 'dgd'){
+					console.log('bch--->'+makerPrice,takerPrice,priceSpace)
+				}
+				hideNegative(cryptoBox,pricepercent)
+				function hideNegative(cryptoBox,pricepercent) {
+					if(pricepercent > 0){
+						cryptoBox.fadeIn()
+					}else{
+						cryptoBox.fadeOut()
+					}
+				}
+				// 桌面提示 如果大于1%
+				NotePercent(pricepercent)
+
+				function sortEarnings(cryptoBox,pricepercent) {
+					
+				}
+				// destory
+				makerDom = '';
+				takerDom = '';
+				makerArray = '';
+				takerArray = '';
+				takerPrice = '';
+				makerPrice = '';
+				priceSpace = '';
+				priceCompare = '';
+		}
+		this.compareSymbol(cryptoBox,crypto)
+		// 动画
+		updateAnimation(crypto)
+		// destory
+		cryptoBox = ''
+		symbolBox = ''
+		priceSym = ''
+		btcPrice = ''
+		ethPrice = ''
+		bchPrice = ''
+		dep = ''
+		sale = ''
+		buy = ''
+		symbolTextAsks = ''
+		symbolTextBids = ''
+	}
+	function updateAnimation(channel) {
+		var CN = 'current',
+			dom = $('#'+channel)
+		dom.addClass(CN)
+		setTimeout(function () {
+			dom.removeClass(CN)
+		},200)
+	}
+	function NotePercent(percent) {
+		var permis = Notification.permission;
+		if(permis != 'default'){
+			Notification.requestPermission();
+			permis = Notification.permission;
+		}
+		console.log(permis,percent)
+		if(percent < 1) return false;
+		if(permis != 'granted') return false;
+		var title = "注意注意!!!" 
+		new Notification(title,{
+			body:"出现"+percent
+		})
+	}
+	function onError(evt) {
+		print('<span style="color: red;">ERROR:</span> ' + evt.data);
+	}
+
+	function doSend(message) {
+		// console.log(message)
+		okCoinWebSocket.websocket.send(message);
+	}
+
+	function print(message) {
+		var status = document.getElementById("status");
+		status.style.wordWrap = "break-word";
+		status.innerHTML += message + "<br/>";
+	}
+	
+	function createTable(array) {
+		var str = '<table id="tdata" border="1">\r\n<tr id="tr0">\r\n';
+		for ( var index in array[0]) {
+			str += '<th>' + index + '</th>\r\n';
+		}
+		str += '</tr>\r\n';
+
+		for ( var i = 0; i < array.length; i++) {
+			str += '<tr id="tr' + (i+1) + '">\r\n';
+			for ( var j in array[i]) {
+				str += '<td>' + JSON.stringify(array[i][j]) + '</td>\r\n';
+				//if(typeof array[i][j] == 'string' && array[i][j].indexOf("ok_") >= 0) {
+					//console.log(array[i][j]);
+				//}
+			}
+			str += '</tr>\r\n';
+		}
+		
+		str += '</table>\r\n';
+		document.getElementById("output").innerHTML = str;
+	}
+
+	//现货下单
+	function spotTrade() {
+		var sign = MD5("amount=0.1&api_key=" + okCoinWebSocket.api_key
+				+ "&symbol=ltc_usd&type=sell_market&secret_key=" + okCoinWebSocket.secret_key);
+		doSend("{'event':'addChannel','channel':'ok_spotusd_trade','parameters':{'api_key':'" + okCoinWebSocket.api_key
+				+ "','sign':'" + sign + "','symbol':'ltc_usd','type':'sell_market','amount':0.1}}");
+	}
+
+	//现货取消订单
+	function spotCancelOrder(orderId) {
+		var sign = MD5("api_key=" + okCoinWebSocket.api_key + "&order_id=" + orderId
+				+ "&symbol=ltc_usd&secret_key=" + okCoinWebSocket.secret_key);
+		doSend("{'event':'addChannel','channel':'ok_spotusd_cancel_order','parameters':{'api_key':'" + okCoinWebSocket.api_key
+				+ "','sign':'" + sign + "','symbol':'ltc_usd','order_id':'" + orderId + "'}}");
+	}
+
+	//现货个人信息
+	function spotUserInfo() {
+		var sign = MD5("api_key=" + okCoinWebSocket.api_key + "&secret_key=" + okCoinWebSocket.secret_key);
+		doSend("{'event':'addChannel','channel':'ok_spotusd_userinfo','parameters' :{'api_key':'"
+				+ okCoinWebSocket.api_key + "','sign':'" + sign + "'}}");
+	}
+	
+	//查询订单信息
+	function spotOrderInfo(){
+		var sign = MD5("api_key=" + okCoinWebSocket.api_key + "&order_id=20914907&secret_key=" + okCoinWebSocket.secret_key + "&symbol=ltc_usd");
+		doSend("{'event':'addChannel','channel':'ok_spotusd_orderinfo','parameters' :{'api_key':'"
+				+ okCoinWebSocket.api_key + "','symbol':'ltc_usd','order_id':'20914907','sign':'" + sign + "'}}");
+	}
+	//订阅交易数据
+	function spotTrades() {
+		var sign = MD5("api_key=" + okCoinWebSocket.api_key + "&secret_key=" + okCoinWebSocket.secret_key);
+		doSend("{'event':'addChannel','channel':'ok_sub_spotusd_trades','parameters' :{'api_key':'"
+				+ okCoinWebSocket.api_key + "','sign':'" + sign + "'}}");
+	}
+	//订阅账户信息
+	function spotUserinfos() {
+		var sign = MD5("api_key=" + okCoinWebSocket.api_key + "&secret_key=" + okCoinWebSocket.secret_key);
+		console.log(okCoinWebSocket.api_key)
+		console.log(sign)
+		doSend("{'event':'addChannel','channel':'ok_spot_userinfo','parameters' :{'api_key':'"
+				+ okCoinWebSocket.api_key + "','sign':'" + sign + "'}}");
+	}
+
+	//合约下单
+	function futureTrade() {
+		var sign = MD5("amount=1&api_key=" + okCoinWebSocket.api_key + 
+				"&contract_type=this_week&lever_rate=20&match_price=1&price=1.5&symbol=ltc_usd&type=0&secret_key=" + okCoinWebSocket.secret_key);
+		doSend("{'event': 'addChannel','channel':'ok_futureusd_trade','parameters': {'api_key': '"
+				+ okCoinWebSocket.api_key + "','sign': '" + sign + "','symbol': 'ltc_usd','contract_type': 'this_week','amount': '1','price': '1.5','type': '0','match_price': '1','lever_rate': '20'}}");
+	}
+
+	//合约取消订单
+	function futureCancelOrder(orderId) {
+		var sign = MD5("api_key=" + okCoinWebSocket.api_key + "&contract_type=this_week&order_id=" + orderId
+				+ "&symbol=ltc_usd&secret_key=" + okCoinWebSocket.secret_key);
+		doSend("{'event': 'addChannel','channel': 'ok_futureusd_cancel_order','parameters': {'api_key': '"
+				+ okCoinWebSocket.api_key + "','sign': '" + sign + "','symbol': 'ltc_usd','order_id': '" + orderId
+				+ "','contract_type': 'this_week'}}");
+	}
+
+	//合约个人信息
+	function futureUserInfo() {
+		var sign = MD5("api_key=" + okCoinWebSocket.api_key + "&secret_key=" + okCoinWebSocket.secret_key);
+		doSend("{'event':'addChannel','channel':'ok_futureusd_userinfo','parameters' :{'api_key':'"
+				+ okCoinWebSocket.api_key + "','sign':'" + sign + "'}}");
+	}
+
+	//查询合约订单
+	function futureOrderInfo(orderId) {
+		var sign = MD5("api_key=" + okCoinWebSocket.api_key + "&contract_type=this_week&current_page=1&order_id=" + orderId
+				+ "&page_length=1&symbol=ltc_usd&secret_key=" + okCoinWebSocket.secret_key + "&status=1");
+		doSend("{'event': 'addChannel','channel': 'ok_futureusd_orderinfo','parameters': {'api_key': '"
+				+ okCoinWebSocket.api_key + "','sign': '" + sign + "','symbol': 'ltc_usd','order_id': '" + orderId
+				+ "','contract_type': 'this_week','status':'1','current_page':'1','page_length':'1'}}");
+	}
+	
+	//订阅合约交易数据
+	function futureTrades() {
+		var sign = MD5("api_key=" + okCoinWebSocket.api_key + "&secret_key=" + okCoinWebSocket.secret_key);
+		doSend("{'event':'addChannel','channel':'ok_sub_futureusd_trades','parameters' :{'api_key':'"
+				+ okCoinWebSocket.api_key + "','sign':'" + sign + "'}}");
+	}
+	
+	//订阅合约账户信息
+	function futureUserinfos() {
+		var sign = MD5("api_key=" + okCoinWebSocket.api_key + "&secret_key=" + okCoinWebSocket.secret_key);
+		doSend("{'event':'addChannel','channel':'ok_sub_futureusd_userinfo','parameters' :{'api_key':'"
+				+ okCoinWebSocket.api_key + "','sign':'" + sign + "'}}");
+	}
+	
+	//订阅合约持仓信息
+	function futurePositions() {
+		var sign = MD5("api_key=" + okCoinWebSocket.api_key + "&secret_key=" + okCoinWebSocket.secret_key);
+		doSend("{'event':'addChannel','channel':'ok_sub_futureusd_positions','parameters' :{'api_key':'"
+				+ okCoinWebSocket.api_key + "','sign':'" + sign + "'}}");
+	}
+	window.onload = okCoinWebSocket.init("wss://real.okex.com:10440/websocket/okexapi", key.okex[0].public, key.okex[0].private);
+</script>
+
+</body>
+</html>
